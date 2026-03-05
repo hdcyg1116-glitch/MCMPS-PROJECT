@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>작업 일보</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=35">
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=19"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        .back-link {
+            padding: 0.5rem 1.2rem;
+            background: #334155;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .back-link:hover {
+            background: #1e293b;
+        }
+
+        /* Report Specific Styles */
+        .report-wrapper {
+            font-family: 'Pretendard', sans-serif;
+            font-size: 0.8rem;
+            color: #334155;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            /* 내부 세로 스크롤 대신 전체 창 스크롤 허용 */
+            overflow-y: visible;
+        }
+
+        .summary-table {
+            border-collapse: collapse;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            border: 1px solid #94a3b8;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .summary-table th {
+            font-weight: 600;
+        }
+
+        .daily-report-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            /* For consistent cell sizes */
+            min-width: 1900px;
+            /* To prevent squishing */
+        }
+
+        .daily-report-table th,
+        .daily-report-table td {
+            border: 1px solid #64748b;
+            padding: 0.3rem 0.2rem;
+            vertical-align: middle;
+            word-break: keep-all;
+        }
+
+        .daily-report-table thead th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-align: center;
+            position: sticky;
+            z-index: 10;
+        }
+
+        .header-row-1 th {
+            top: 0;
+            z-index: 31;
+        }
+
+        .header-row-2 th {
+            top: 38px;
+            /* 첫 번째 줄 높이에 맞춰 조정 */
+            z-index: 30;
+        }
+
+        .header-row-1 th,
+        .header-row-2 th {
+            border-bottom: 2px solid #475569;
+            background-color: #f1f5f9;
+            /* 배경색 명시 */
+        }
+
+        /* Color classes */
+        .bg-light-yellow {
+            background-color: #fef08a !important;
+        }
+
+        .bg-light-gray {
+            background-color: #e2e8f0 !important;
+        }
+
+        .bg-light-green {
+            background-color: #a7f3d0 !important;
+        }
+
+        .bg-blue-light {
+            background-color: #bae6fd !important;
+        }
+
+        .bg-yellow {
+            background-color: #fde047 !important;
+        }
+
+        .bg-orange {
+            background-color: #f97316 !important;
+        }
+
+        .bg-white {
+            background-color: #ffffff !important;
+        }
+
+        .text-blue {
+            color: #2563eb !important;
+        }
+
+        .text-red {
+            color: #dc2626 !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .text-xs {
+            font-size: 0.7rem;
+            line-height: 1.1;
+        }
+
+        .text-white {
+            color: white !important;
+        }
+
+        /* Column Widths */
+        .col-month {
+            width: 35px;
+        }
+
+        .col-job {
+            width: 45px;
+        }
+
+        .col-model {
+            width: 75px;
+        }
+
+        .col-date {
+            width: 65px;
+        }
+
+        .col-process {
+            width: 45px;
+        }
+
+        .col-dest {
+            width: 85px;
+        }
+
+        .col-spec {
+            width: 140px;
+        }
+
+        .process-col {
+            width: 50px;
+        }
+
+        .col-type {
+            width: 40px;
+        }
+
+        .col-day {
+            width: 50px;
+        }
+
+        /* Diagonal line style for completed cells */
+        .cell-done {
+            background: linear-gradient(to top right,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0) 48%,
+                    #1e293b 49%,
+                    #1e293b 51%,
+                    rgba(255, 255, 255, 0) 52%,
+                    rgba(255, 255, 255, 0) 100%);
+            background-color: #dcfce7;
+            /* Light green base */
+            position: relative;
+        }
+
+        .data-row-bottom td {
+            border-bottom: 2px solid #475569;
+        }
+
+        .separator-row td {
+            height: 25px;
+            background-color: #38bdf8;
+            border: 1px solid #0284c7;
+        }
+
+        /* Highlight row on hover */
+        .data-row-top:hover,
+        .data-row-bottom:hover {
+            background-color: rgba(241, 245, 249, 0.5);
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- 좌측 사이드바 영역 -->
+        <aside class="sidebar collapsed" id="mainSidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    DN <span>SOLUTIONS</span>
+                </div>
+                <!-- 접기/펴기 토글 버튼 -->
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="사이드바 토글">
+                    <span class="toggle-icon" id="toggleIcon">◀</span>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="sidebar-menu-item">
+                    <span class="menu-icon">🏠</span>
+                    <span class="menu-text">공정 종합 관리</span>
+                </a>
+                <a href="/work_report" class="sidebar-menu-item active">
+                    <span class="menu-icon">📁</span>
+                    <span class="menu-text">작업일보</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 우측 메인 컨텐츠 영역 (기존 화면) -->
+        <div class="container" style="max-width: 98%; padding: 1rem;">
+            <header>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div
+                        style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
+                        DN <span style="font-weight: 300; opacity: 0.9;">SOLUTIONS</span>
+                    </div>
+                    <div>
+                        <h1 style="font-size: 1.4rem;">작업 일보</h1>
+                        <p style="color: var(--secondary-color); font-size: 0.85rem; margin-top: 2px;">Daily Work Report
+                            System</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <a href="/" class="back-link" onclick="console.log('메인 화면으로 이동합니다.')">공정 종합 관리</a>
+                </div>
+            </header>
+
+            <div class="report-wrapper">
+                <!-- 상단 요약 정보 / 타이틀 -->
+                <div class="report-header"
+                    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #0f172a;">TC1직
+                            업무일지
+                            (TT기종)</h2>
+                        <div style="font-weight: 600; color: #475569;" id="report-date-display">2026-03-04 (수)</div>
+                    </div>
+
+                    <div class="summary-area" style="display: flex; gap: 1rem; align-items: stretch;">
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th style="background-color: #a7f3d0;">생산월</th>
+                                    <th style="background-color: #e2e8f0;">계획</th>
+                                    <th style="background-color: #e2e8f0;">진도율</th>
+                                    <th style="background-color: #e2e8f0;">미시작</th>
+                                    <th style="background-color: #e2e8f0;">베이스</th>
+                                    <th style="background-color: #e2e8f0;">1차커버</th>
+                                    <th style="background-color: #e2e8f0;">전장</th>
+                                    <th style="background-color: #e2e8f0;">정도조정</th>
+                                    <th style="background-color: #e2e8f0;">2차커버</th>
+                                    <th style="background-color: #e2e8f0;">검사</th>
+                                    <th style="background-color: #e2e8f0;">출하</th>
+                                    <th style="background-color: #e2e8f0;">완료</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="background-color: #a7f3d0; text-align: center; font-weight: bold;">2</td>
+                                    <td style="text-align: center;">11</td>
+                                    <td style="text-align: center; font-weight: bold;">94%</td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;">1</td>
+                                    <td style="text-align: center;">5</td>
+                                    <td style="background-color: #dbeafe; text-align: center;">5</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #a7f3d0; text-align: center; font-weight: bold;">3</td>
+                                    <td style="text-align: center;">7</td>
+                                    <td style="text-align: center; font-weight: bold;">57%</td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;">1</td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;">1</td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                    <td style="text-align: center;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div
+                            style="background-color: #fde047; padding: 0.5rem 1rem; border: 1px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #854d0e; text-align: center;">
+                            공정<br>지연
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 메인 데이터 테이블 -->
+                <table class="daily-report-table">
+                    <thead>
+                        <tr class="header-row-1">
+                            <th rowspan="2" class="col-month bg-light-green">생산<br>월</th>
+                            <th class="col-job">지번</th>
+                            <th class="col-model">기종</th>
+                            <th class="col-date">시작(계획)</th>
+                            <th rowspan="2" class="col-process bg-light-yellow">현공정</th>
+                            <th class="col-dest">출하처</th>
+                            <th class="col-spec">스페셜 사양</th>
+                            <th colspan="12" class="bg-light-gray">직납 지체 요구팀</th>
+                            <th rowspan="2" class="col-type">진도<br>구분</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/2 월</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/3 화</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/4 수</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/5 목</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/6 금</th>
+                            <th rowspan="2" class="col-day text-blue bg-light-gray">3/7 토</th>
+                            <th rowspan="2" class="col-day text-red bg-light-gray">3/8 일</th>
+                            <th rowspan="2" class="col-day bg-light-gray">3/9 월</th>
+                        </tr>
+                        <tr class="header-row-2">
+                            <th>작업자</th>
+                            <th>호기</th>
+                            <th>시작(실적)</th>
+                            <th>출하요구일</th>
+                            <th>이슈 (근태/품질/결품)</th>
+                            <th class="process-col">BED</th>
+                            <th class="process-col">SADDLE</th>
+                            <th class="process-col">U,T/P</th>
+                            <th class="process-col">L,T/P</th>
+                            <th class="process-col">가드캐처</th>
+                            <th class="process-col">1차커버</th>
+                            <th class="process-col">전장</th>
+                            <th class="process-col">정도조정</th>
+                            <th class="process-col">2차커버</th>
+                            <th class="process-col">검사</th>
+                            <th class="process-col">출하</th>
+                            <th class="process-col">완료</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 데이터 묶음 1 (D12 / 133) -->
+                        <tr class="data-row-top" onclick="console.log('D12 작업 내역을 확인합니다.')">
+                            <td rowspan="2" class="bg-light-green text-center font-bold">2</td>
+                            <td class="text-blue font-bold text-center">D12</td>
+                            <td class="text-red font-bold text-center">TT13SYY8</td>
+                            <td class="text-center">2/4</td>
+                            <td rowspan="2" class="text-red font-bold text-center bg-white">GIN</td>
+                            <td class="text-center text-xs">DNSEU(E30)</td>
+                            <td class="text-blue text-center font-bold text-xs">파트언로더</td>
+
+                            <td rowspan="2" class="cell-done"></td> <!-- BED -->
+                            <td rowspan="2" class="cell-done"></td> <!-- SADDLE -->
+                            <td class="text-center">2/4</td> <!-- U,T/P -->
+                            <td class="text-center">2/4</td> <!-- L,T/P -->
+                            <td class="text-center">2/4</td> <!-- 가드캐처 -->
+                            <td class="text-center">2/4</td> <!-- 1차커버 -->
+                            <td class="text-center">2/6</td> <!-- 전장 -->
+                            <td class="text-center">2/6</td> <!-- 정도조정 -->
+                            <td class="text-center">2/23</td> <!-- 2차커버 -->
+                            <td class="text-center">2/23</td> <!-- 검사 -->
+                            <td class="text-center">3/3</td> <!-- 출하 -->
+                            <td class="text-center">3/5</td> <!-- 완료 -->
+
+                            <td class="text-center bg-white">계획</td>
+
+                            <!-- 날짜칸 -->
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+                        <tr class="data-row-bottom">
+                            <td class="text-center"></td>
+                            <td class="text-center">133</td>
+                            <td class="text-center">2/5</td>
+                            <td class="text-center"></td>
+                            <td class="text-center text-xs"></td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+
+                            <td class="text-center bg-white">실적</td>
+
+                            <!-- 날짜칸 -->
+                            <td class="text-center"></td>
+                            <td class="text-center bg-yellow text-xs font-bold">GIN<br>검사</td>
+                            <td class="text-center text-xs">GIN<br>검사</td>
+                            <td class="text-center text-xs">GIN<br>검사</td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+
+                        <!-- 데이터 묶음 2 (D14 / 1741) -->
+                        <tr class="data-row-top" onclick="console.log('D14 작업 내역을 확인합니다.')">
+                            <td rowspan="2" class="bg-light-green text-center font-bold">2</td>
+                            <td class="text-blue font-bold text-center">D14</td>
+                            <td class="text-red font-bold text-center">TT18SY</td>
+                            <td class="text-center">1/30</td>
+                            <td rowspan="2" class="text-red font-bold text-center bg-white">GRP</td>
+                            <td class="text-center text-xs">R/M(E31)</td>
+                            <td class="text-blue text-center font-bold text-xs">SQ100</td>
+
+                            <td rowspan="2" class="cell-done"></td> <!-- BED -->
+                            <td rowspan="2" class="cell-done"></td> <!-- SADDLE -->
+                            <td class="text-center">1/29</td> <!-- U,T/P -->
+                            <td class="text-center">1/29</td> <!-- L,T/P -->
+                            <td rowspan="2" class="cell-done"></td> <!-- 가드캐처 -->
+                            <td rowspan="2" class="cell-done"></td> <!-- 1차커버 -->
+                            <td class="text-center">1/30</td> <!-- 전장 -->
+                            <td class="text-center">1/30</td> <!-- 정도조정 -->
+                            <td class="text-center">2/11</td> <!-- 2차커버 -->
+                            <td class="text-center">2/11</td> <!-- 검사 -->
+                            <td class="text-center">2/24</td> <!-- 출하 -->
+                            <td class="text-center">2/24</td> <!-- 완료 -->
+
+                            <td class="text-center bg-white">계획</td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+                        <tr class="data-row-bottom">
+                            <td class="text-center"></td>
+                            <td class="text-center">1741</td>
+                            <td class="text-center">1/30</td>
+                            <td class="text-center"></td>
+                            <td class="text-red text-center font-bold text-xs">TOOL ID 검증 대기</td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+
+                            <td class="text-center bg-white">실적</td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center bg-orange text-xs text-white">GRP<br>작업대기</td>
+                            <td class="text-center bg-orange text-xs text-white">GRP<br>작업대기</td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+
+                        <!-- 구분선 -->
+                        <tr class="separator-row">
+                            <td colspan="28"></td>
+                        </tr>
+
+                        <!-- 데이터 묶음 3 (C07 / 516) -->
+                        <tr class="data-row-top" onclick="console.log('C07 작업 내역을 확인합니다.')">
+                            <td rowspan="2" class="bg-blue-light text-center font-bold">3</td>
+                            <td class="text-blue font-bold text-center">C07</td>
+                            <td class="text-red font-bold text-center">TT25SY</td>
+                            <td class="text-center">2/28</td>
+                            <td rowspan="2" class="text-red font-bold text-center bg-white">GSY6</td>
+                            <td class="text-center text-xs">DNSA(U32)</td>
+                            <td class="text-blue text-center font-bold text-xs">COOLANT TANK 후방타입</td>
+
+                            <td class="text-center bg-light-green">2/27</td> <!-- BED -->
+                            <td class="text-center bg-light-green">2/27</td> <!-- SADDLE -->
+                            <td class="text-center bg-light-gray">2/28</td> <!-- U,T/P -->
+                            <td class="text-center bg-light-gray">2/28</td> <!-- L,T/P -->
+                            <td rowspan="2" class="cell-done"></td> <!-- 가드캐처 -->
+                            <td rowspan="2" class="cell-done"></td> <!-- 1차커버 -->
+                            <td class="text-center"></td> <!-- 전장 -->
+                            <td class="text-center"></td> <!-- 정도조정 -->
+                            <td class="text-center"></td> <!-- 2차커버 -->
+                            <td class="text-center"></td> <!-- 검사 -->
+                            <td class="text-center"></td> <!-- 출하 -->
+                            <td class="text-center"></td> <!-- 완료 -->
+
+                            <td class="text-center bg-white">계획</td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+                        <tr class="data-row-bottom">
+                            <td class="text-center">이태영</td>
+                            <td class="text-center">516</td>
+                            <td class="text-center">2/28</td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+
+                            <td class="text-center bg-white">실적</td>
+
+                            <td class="text-center text-xs">GSY6<br>이태영</td>
+                            <td class="text-center text-xs">GSY6<br>이태영</td>
+                            <td class="text-center text-xs">GSY6<br>이태영</td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                            <td class="text-center"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+            // 오늘의 날짜 표시 최신화
+            document.addEventListener('DOMContentLoaded', () => {
+                const today = new Date();
+                const days = ['일', '월', '화', '수', '목', '금', '토'];
+                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} (${days[today.getDay()]})`;
+
+                const displayEl = document.getElementById('report-date-display');
+                if (displayEl) {
+                    displayEl.innerText = dateStr;
+                }
+                console.log("작업일보 데이터 테이블 렌더링 완료");
+                console.log("작업일보 데이터 테이블 렌더링 완료");
+            });
+        </script>
+        <script src="{{ url_for('static', filename='js/main.js') }}?v=15"></script>
+    </div>
+</body>
+
+</html>

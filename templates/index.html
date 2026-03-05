@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCPMS - 공작기계 공정 관리 시스템</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=38">
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=19"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- 좌측 사이드바 영역 -->
+        <aside class="sidebar collapsed" id="mainSidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    DN <span>SOLUTIONS</span>
+                </div>
+                <!-- 접기/펴기 토글 버튼 -->
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="사이드바 토글">
+                    <span class="toggle-icon" id="toggleIcon">◀</span>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="sidebar-menu-item active">
+                    <span class="menu-icon">🏠</span>
+                    <span class="menu-text">공정 종합 관리</span>
+                </a>
+                <a href="/work_report" class="sidebar-menu-item">
+                    <span class="menu-icon">📁</span>
+                    <span class="menu-text">작업일보</span>
+                </a>
+
+            </nav>
+        </aside>
+
+        <!-- 우측 메인 컨텐츠 영역 (기존 화면) -->
+        <div class="container">
+            <header>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <!-- DN Solutions 로고 컨셉의 타이틀 -->
+                    <div
+                        style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
+                        DN <span style="font-weight: 300; opacity: 0.9;">SOLUTIONS</span>
+                    </div>
+                    <div>
+                        <h1 style="font-size: 1.4rem;">공정 종합 관리 시스템</h1>
+                        <p style="color: var(--secondary-color); font-size: 0.85rem; margin-top: 2px;">Smart Production
+                            Management System</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+
+                    <!-- 현재 날짜 및 생산월 정보 -->
+                    <div id="info-area"
+                        style="text-align: right; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <div id="current-date"
+                            style="font-size: 0.95rem; font-weight: 600; color: var(--primary-color);">로딩
+                            중...</div>
+                    </div>
+
+                    <!-- 엑셀 드래그 앤 드롭 영역 (테이블 헤더 내부로 이동됨) -->
+                    <div id="last-updated" style="font-size: 0.9rem; color: var(--secondary-color); text-align: right;">
+                        최근 업데이트: -
+                    </div>
+                    <!-- 작업일보 링크 (최우측으로 이동) -->
+                    <a href="/work_report"
+                        style="padding: 0.5rem 1.2rem; background: #334155; color: white; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.9rem; transition: background 0.2s;">
+                        작업일보
+                    </a>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- 요약 카드 -->
+                <div class="card">
+                    <div class="card-title">📊 직별 완료율</div>
+                    <div id="section-completion-list" style="padding: 10px; height: auto;">
+                        <!-- JS로 채워짐 -->
+                        로딩 중...
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📅 금주 출하예상 장비 <span id="week-range"
+                            style="font-size: 0.85rem; font-weight: normal; color: var(--secondary-color); margin-left: 5px;"></span>
+                    </div>
+                    <div id="weekly-schedule">
+                        <!-- JS로 채워짐 -->
+                        로딩 중...
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="height: auto; margin-top: 0; padding: 0; overflow: visible;">
+                <div class="table-container" style="border: none; overflow: visible;">
+                    <table id="production-table" style="table-layout: auto;">
+                        <thead>
+                            <!-- 제목 및 버튼 줄 (스크롤 시 사라짐) -->
+                            <tr class="title-row" style="background: white;">
+                                <th colspan="15"
+                                    style="padding: 0.8rem 1.5rem; border: none; text-align: left; background: white; border-bottom: 2px solid var(--primary-color); position: sticky; top: 0; z-index: 40; height: 50px;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <div
+                                            style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; color: var(--primary-color); font-weight: 800; min-width: 150px;">
+                                            📋 생산 대수</div>
+
+                                        <!-- 글로벌 검색창 추가 (중앙 배치) -->
+                                        <div
+                                            style="flex-grow: 1; display: flex; justify-content: center; max-width: 600px; margin: 0 20px;">
+                                            <div style="position: relative; width: 100%;">
+                                                <input type="text" id="global-search" oninput="filterData()"
+                                                    placeholder="숫자나 글씨를 입력하여 전체 검색"
+                                                    style="width: 100%; padding: 0.4rem 1rem 0.4rem 2.5rem; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.85rem; outline: none; transition: all 0.2s; border-color: var(--primary-color);">
+                                                <span
+                                                    style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color); font-size: 0.9rem;">🔍</span>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; gap: 0.5rem; align-items: center; min-width: 150px; justify-content: flex-end;">
+                                            <!-- 파일 업로드 버튼 (클래스 적용) -->
+                                            <label for="fileElem" id="drop-area" class="btn-action btn-upload">
+                                                📤 엑셀 업로드
+                                                <input type="file" id="fileElem" style="display:none">
+                                            </label>
+
+                                            <button id="download-excel" onclick="downloadExcel()"
+                                                class="btn-action btn-download">
+                                                📥 엑셀 다운로드
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                            </tr>
+                            <!-- 실제 고정될 제목 칸 (1번째 헤드라인) -->
+                            <tr>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;" data-key="no">
+                                    NO.</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="month">생산월</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="section">생산직</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="model">전산 기종</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="serial">호기(Serial)</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="order">오더</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="customer">출하처</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="first_shipment">최초 출하일
+                                </th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="target">개정 출하일</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="base">Base 시작일</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="first_start">최초 시작일</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="revised_start">개정 시작일
+                                </th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;" data-key="nc">
+                                    NC</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="status">현공정</th>
+                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
+                                    data-key="issue">ISSUE 사항</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- JS 데이터 로딩 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=16"></script>
+</body>
+
+</html>
