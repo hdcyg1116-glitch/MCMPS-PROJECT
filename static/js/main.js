@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("공정 관리 시스템 UI 로드 완료");
+
+    // 초기 데이터 로드 (시계 함수는 사용하지 않으므로 제거됨)
     fetchData();
-    updateClock();
-    setInterval(updateClock, 1000); // 1초마다 시계 업데이트
 
     // 차트 인스턴스 저장용 변수
     window.overallChartInstance = null;
@@ -11,23 +11,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const dropArea = document.getElementById('drop-area');
     const fileElem = document.getElementById('fileElem');
 
-    // 클릭 시 파일 선택창 띄우기 (Label for로 대체되어 필요 없음)
-
     // 파일 선택창에서 파일 선택 시 처리
-    fileElem.addEventListener('change', function (e) {
-        handleFiles(this.files);
-    });
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-    });
+    if (fileElem) {
+        fileElem.addEventListener('change', function (e) {
+            handleFiles(this.files);
+        });
+    }
 
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
     }
 
-    dropArea.addEventListener('drop', handleDrop, false);
+    if (dropArea) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+    }
 
     function handleDrop(e) {
         let dt = e.dataTransfer;
@@ -86,6 +88,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         }
     }
+
+    // --- 통합 월 선택 기능 ---
+    const unifiedSelect = document.getElementById('unified-month-select');
+
+    if (unifiedSelect) {
+        // 1. 시트 목록 가져오기 및 드롭다운 채우기
+        fetch('/api/sheets')
+            .then(res => res.json())
+            .then(sheets => {
+                if (!sheets || sheets.length === 0) {
+                    unifiedSelect.innerHTML = '<option value="">시트 정보를 불러올 수 없습니다</option>';
+                    return;
+                }
+                unifiedSelect.innerHTML = '';
+                sheets.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ type: item.type, sheet: item.sheet });
+                    opt.innerText = item.display;
+                    unifiedSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error("Sheet list fetch error:", err);
+                unifiedSelect.innerHTML = '<option value="">서버 연결 오류</option>';
+            });
+
+        // 2. 선택 변경 시 데이터 로드
+        unifiedSelect.addEventListener('change', function () {
+            try {
+                const config = JSON.parse(this.value);
+                fetchData(config.type, config.sheet);
+            } catch (e) {
+                console.error("Selection error:", e);
+            }
+        });
+    }
 });
 
 // 전역 데이터 저장용
@@ -93,12 +131,15 @@ window.allProductionData = [];
 window.columnFilters = {}; // 컬럼별 필터 전역 상태
 window.currentSort = { key: null, direction: 'asc' }; // 정렬 상태 기록
 
-function fetchData() {
-    fetch('/api/data')
+function fetchData(type = 'plan', sheet = null) {
+    let url = `/api/data?type=${type}`;
+    if (sheet) url += `&sheet=${encodeURIComponent(sheet)}`;
+
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             window.allProductionData = data;
-            populateSectionFilter(data);
+            // populateSectionFilter(data); // 필요 시 유지
             populateColumnFilters(data);
             filterData(); // 필터 적용 및 테이블 렌더링
             renderDashboardSummaries(data);
@@ -530,29 +571,6 @@ function updateSortIcons() {
             }
         }
 
-        if (key && window.currentSort.key === key) {
-            const icon = document.createElement('span');
-            icon.className = 'sort-icon';
-            if (window.currentSort.direction === 'asc') {
-                icon.innerText = '▲';
-                icon.style.color = '#10b981';
-            } else {
-                icon.innerText = '▼';
-                icon.style.color = '#ef4444';
-            }
-
-            // 컨테이너가 있으면 그 안에, 필터 아이콘 앞에 삽입
-            let actionsContainer = th.querySelector('.header-actions');
-            if (actionsContainer) {
-                if (filterIcon) {
-                    actionsContainer.insertBefore(icon, filterIcon);
-                } else {
-                    actionsContainer.appendChild(icon);
-                }
-            } else {
-                th.appendChild(icon);
-            }
-        }
     });
 }
 
@@ -616,7 +634,21 @@ function renderTable(data) {
     tbody.innerHTML = '';
 
     data.forEach(item => {
+        let rowClass = '';
+        let statusClass = 'status-ongoing';
+        const st = String(item.status).trim();
+        if (st.includes('완료')) {
+            statusClass = 'status-completed';
+        } else if (st.toLowerCase() === 'p') {
+            statusClass = 'status-pass';
+            rowClass = 'row-pass';  // P일 경우 행 전체 배경색 클래스 적용
+        }
+
         const row = document.createElement('tr');
+        if (rowClass) {
+            row.className = rowClass;
+        }
+
         row.innerHTML = `
             <td>${item.no}</td>
             <td>${item.month}</td>
@@ -631,7 +663,7 @@ function renderTable(data) {
             <td>${renderDateBadge(item.first_start)}</td>
             <td>${renderDateBadge(item.revised_start)}</td>
             <td>${renderDateBadge(item.nc)}</td>
-            <td><span class="status-badge ${item.status.includes('완료') ? 'status-completed' : 'status-ongoing'}">${item.status}</span></td>
+            <td><span class="status-badge ${statusClass}">${item.status}</span></td>
             <td style="color: var(--danger); font-size: 0.8rem; text-align: left; min-width: 150px; white-space: normal;">${item.issue !== '-' && item.issue !== 'nan' ? item.issue : ''}</td>
         `;
         tbody.appendChild(row);

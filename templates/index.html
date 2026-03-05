@@ -102,36 +102,40 @@
                             <!-- 제목 및 버튼 줄 (스크롤 시 사라짐) -->
                             <tr class="title-row" style="background: white;">
                                 <th colspan="15"
-                                    style="padding: 0.8rem 1.5rem; border: none; text-align: left; background: white; border-bottom: 2px solid var(--primary-color); position: sticky; top: 0; z-index: 40; height: 50px;">
+                                    style="padding: 15px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 40;">
                                     <div
                                         style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                        <div
-                                            style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; color: var(--primary-color); font-weight: 800; min-width: 150px;">
-                                            📋 생산 대수</div>
+                                        <div style="display: flex; align-items: center; gap: 15px;">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
+                                                <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b;">생산 대수</h3>
+                                            </div>
+                                            <!-- 월 선택 통합 드롭다운 -->
+                                            <select id="unified-month-select" class="excel-filter-btn"
+                                                style="padding: 6px 12px; font-size: 0.9rem; border: 2px solid #3b82f6; background: #eff6ff; color: #1d4ed8; border-radius: 6px; cursor: pointer; font-weight: 600; min-width: 220px;">
+                                                <option value="">데이터 로딩 중...</option>
+                                            </select>
+                                        </div>
 
-                                        <!-- 글로벌 검색창 추가 (중앙 배치) -->
-                                        <div
-                                            style="flex-grow: 1; display: flex; justify-content: center; max-width: 600px; margin: 0 20px;">
-                                            <div style="position: relative; width: 100%;">
+
+                                        <div style="display: flex; gap: 10px; align-items: center;">
+                                            <div style="position: relative; width: 300px;">
                                                 <input type="text" id="global-search" oninput="filterData()"
                                                     placeholder="숫자나 글씨를 입력하여 전체 검색"
-                                                    style="width: 100%; padding: 0.4rem 1rem 0.4rem 2.5rem; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.85rem; outline: none; transition: all 0.2s; border-color: var(--primary-color);">
+                                                    style="width: 100%; padding: 0.5rem 1rem 0.5rem 2.5rem; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.85rem; outline: none; transition: all 0.2s; border-color: var(--primary-color);">
                                                 <span
                                                     style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color); font-size: 0.9rem;">🔍</span>
                                             </div>
-                                        </div>
 
-                                        <div
-                                            style="display: flex; gap: 0.5rem; align-items: center; min-width: 150px; justify-content: flex-end;">
-                                            <!-- 파일 업로드 버튼 (클래스 적용) -->
-                                            <label for="fileElem" id="drop-area" class="btn-action btn-upload">
-                                                📤 엑셀 업로드
-                                                <input type="file" id="fileElem" style="display:none">
+                                            <label for="fileElem" class="excel-filter-btn danger"
+                                                style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                                <i class="fas fa-upload"></i> 엑셀 업로드
                                             </label>
+                                            <input type="file" id="fileElem" accept=".xlsx, .xls" style="display:none">
 
-                                            <button id="download-excel" onclick="downloadExcel()"
-                                                class="btn-action btn-download">
-                                                📥 엑셀 다운로드
+                                            <button class="excel-filter-btn success" onclick="downloadExcel()"
+                                                style="font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 5px;">
+                                                <i class="fas fa-download"></i> 엑셀 다운로드
                                             </button>
                                         </div>
                                     </div>
@@ -139,38 +143,21 @@
                             </tr>
                             <!-- 실제 고정될 제목 칸 (1번째 헤드라인) -->
                             <tr>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;" data-key="no">
-                                    NO.</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="month">생산월</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="section">생산직</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="model">전산 기종</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="serial">호기(Serial)</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="order">오더</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="customer">출하처</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="first_shipment">최초 출하일
-                                </th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="target">개정 출하일</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="base">Base 시작일</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="first_start">최초 시작일</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="revised_start">개정 시작일
-                                </th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;" data-key="nc">
-                                    NC</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="status">현공정</th>
-                                <th style="top: 50px; z-index: 35; background-color: #f8fafc !important;"
-                                    data-key="issue">ISSUE 사항</th>
+                                <th style="top: 50px; z-index: 35;" data-key="no">NO.</th>
+                                <th style="top: 50px; z-index: 35;" data-key="month">생산월</th>
+                                <th style="top: 50px; z-index: 35;" data-key="section">생산직</th>
+                                <th style="top: 50px; z-index: 35;" data-key="model">전산 기종</th>
+                                <th style="top: 50px; z-index: 35;" data-key="serial">호기</th>
+                                <th style="top: 50px; z-index: 35;" data-key="order">오더</th>
+                                <th style="top: 50px; z-index: 35;" data-key="customer">출하처</th>
+                                <th style="top: 50px; z-index: 35;" data-key="first_shipment">최초 출하일</th>
+                                <th style="top: 50px; z-index: 35; color: #ff0000;" data-key="target">개정 출하일</th>
+                                <th style="top: 50px; z-index: 35;" data-key="base">Base 시작일</th>
+                                <th style="top: 50px; z-index: 35;" data-key="first_start">최초 시작일</th>
+                                <th style="top: 50px; z-index: 35;" data-key="revised_start">개정 시작일</th>
+                                <th style="top: 50px; z-index: 35;" data-key="nc">NC</th>
+                                <th style="top: 50px; z-index: 35;" data-key="status">현공정</th>
+                                <th style="top: 50px; z-index: 35;" data-key="issue">ISSUE 사항</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
@@ -182,7 +169,8 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=16"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=42">
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=23"></script>
 </body>
 
 </html>
