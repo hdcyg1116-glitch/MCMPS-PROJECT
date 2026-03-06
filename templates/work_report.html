@@ -250,26 +250,21 @@
                     <span class="menu-icon">📁</span>
                     <span class="menu-text">작업일보</span>
                 </a>
+                <a href="/shop_calendar" class="sidebar-menu-item">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">Shop Calendar</span>
+                </a>
             </nav>
         </aside>
 
         <!-- 우측 메인 컨텐츠 영역 (기존 화면) -->
         <div class="container" style="max-width: 98%; padding: 1rem;">
-            <header>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div
-                        style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
-                        DN <span style="font-weight: 300; opacity: 0.9;">SOLUTIONS</span>
-                    </div>
-                    <div>
-                        <h1 style="font-size: 1.4rem;">작업 일보</h1>
-                        <p style="color: var(--secondary-color); font-size: 0.85rem; margin-top: 2px;">Daily Work Report
-                            System</p>
-                    </div>
+            <header style="margin-bottom: 1.5rem; padding: 0.5rem 0;">
+                <div>
+                    <h1 style="font-size: 1.4rem; margin: 0;">작업 일보</h1>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
-                    <a href="/" class="back-link" onclick="console.log('메인 화면으로 이동합니다.')">공정 종합 관리</a>
                 </div>
             </header>
 
@@ -602,7 +597,7 @@
                 console.log("작업일보 데이터 테이블 렌더링 완료");
             });
         </script>
-        <script src="{{ url_for('static', filename='js/main.js') }}?v=23"></script>
+        <script src="{{ url_for('static', filename='js/main.js') }}?v=24"></script>
     </div>
 </body>
 

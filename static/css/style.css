@@ -46,8 +46,8 @@ body {
     min-width: 0;
     /* Flexbox 하위 요소의 최소 너비를 제한하여 테이블 등으로 인해 뚫고 나가는 현상 방지 */
     /* 개별 스크롤 대신 전체 창 스크롤을 쓰도록 변경 */
-    padding: 0 1% 1.5rem 1%;
-    /* 상단 여백 제거, 가로 여백 1% 유지, 하단 여백 추가 */
+    padding: 0 1% 0 1%;
+    /* 상단/하단 여백 제거, 가로 여백 1% 유지 */
     background-color: var(--bg-color);
 }
 
@@ -701,4 +701,85 @@ th:hover .header-filter-icon {
     opacity: 1;
     color: var(--primary-color);
     background: #eff6ff;
+}
+
+/* =========================================
+   Loading Overlay & Animation Styles
+   ========================================= */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.85);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-spinner {
+    border: 5px solid var(--border-color);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 25px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+}
+
+/* 3개의 점 점멸 애니메이션 */
+.loading-text span {
+    animation: blink 1.4s infinite;
+    animation-fill-mode: both;
+}
+
+.loading-text span.dot-one {
+    animation-delay: 0s;
+}
+
+.loading-text span.dot-two {
+    animation-delay: 0.2s;
+}
+
+.loading-text span.dot-three {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0.2;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.2;
+    }
 }

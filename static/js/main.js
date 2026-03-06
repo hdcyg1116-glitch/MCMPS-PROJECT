@@ -1,8 +1,40 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("공정 관리 시스템 UI 로드 완료");
 
-    // 초기 데이터 로드 (시계 함수는 사용하지 않으므로 제거됨)
-    fetchData();
+    // 초기 데이터 로드 (시트 목록 로드 후 자동으로 첫 항목을 불러오도록 변경됨)
+    updateCurrentDate();
+
+    // 현재 날짜 표시 함수
+    function updateCurrentDate() {
+        const dateElem = document.getElementById('current-date');
+        if (dateElem) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const day = dayNames[now.getDay()];
+
+            // 1년 기준 주차 계산 (ISO 주차와 유사한 단순 계산)
+            const getYearWeek = (d) => {
+                const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
+                const pastDaysOfYear = (d - firstDayOfYear) / 86400000;
+                return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            };
+
+            // 당월 기준 주차 계산
+            const getMonthWeek = (d) => {
+                const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+                return Math.ceil((d.getDate() + firstDayOfMonth.getDay()) / 7);
+            };
+
+            const yearWeek = getYearWeek(now);
+            const monthWeek = getMonthWeek(now);
+
+            // 사용자의 요청에 따라 '연간' 글자는 빼고 숫자(주차)만 표시
+            dateElem.innerText = `${year}년 ${month}월 ${date}일 (${day}) [${yearWeek}주차 / ${month}월 ${monthWeek}주차]`;
+        }
+    }
 
     // 차트 인스턴스 저장용 변수
     window.overallChartInstance = null;
@@ -49,6 +81,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             console.log("파일 업로드 시작:", file.name);
 
+            // 로딩 오버레이 표시
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) loadingOverlay.classList.add('active');
+
             // 로딩 표시
             document.getElementById('last-updated').innerText = "업데이트 중...";
 
@@ -61,6 +97,10 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(response => response.json())
                 .then(data => {
+                    // 로딩 오버레이 숨김
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    if (loadingOverlay) loadingOverlay.classList.remove('active');
+
                     if (data.error) {
                         alert("업로드 실패: " + data.error);
                         document.getElementById('last-updated').innerText = "업로드 실패";
@@ -83,6 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
                 .catch(error => {
+                    // 로딩 오버레이 숨김
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    if (loadingOverlay) loadingOverlay.classList.remove('active');
+
                     console.error('Error uploading file:', error);
                     alert("파일 전송 중 오류가 발생했습니다.");
                 });
@@ -108,6 +152,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     opt.innerText = item.display;
                     unifiedSelect.appendChild(opt);
                 });
+
+                // --- 추가: 페이지 로드 시 첫 번째 항목 자동 선택 및 데이터 로드 ---
+                if (unifiedSelect.options.length > 0) {
+                    try {
+                        const firstConfig = JSON.parse(unifiedSelect.options[0].value);
+                        fetchData(firstConfig.type, firstConfig.sheet);
+                    } catch (e) {
+                        console.error("Auto-load error:", e);
+                    }
+                }
             })
             .catch(err => {
                 console.error("Sheet list fetch error:", err);
@@ -122,6 +176,14 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (e) {
                 console.error("Selection error:", e);
             }
+        });
+    }
+
+    // 예기치 못한 에러로 무한 로딩 발생 시, 오버레이를 클릭하면 닫히게 하는 방어 코드 추가
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.addEventListener('click', function () {
+            this.classList.remove('active');
         });
     }
 });

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Calendar - DN SOLUTIONS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=71">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --calendar-border: #000000;
+            --header-bg: #000000;
+            --month-title-bg: #ebff00;
+            --holiday-bg: #dbeafe;
+            /* 연한 파란색 (휴일/토요일) */
+        }
+
+        .calendar-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            width: 95%;
+            max-width: 1160px;
+            /* A4 가로 비율 근사치 */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .main-header-cal {
+            background-color: var(--header-bg);
+            color: #ffffff;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            /* 4열 고정 */
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .month-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            table-layout: fixed;
+        }
+
+        .month-table th,
+        .month-table td {
+            border: 1px solid var(--calendar-border);
+            text-align: center;
+            padding: 4px 1px;
+            height: 22px;
+        }
+
+        .month-header {
+            background-color: var(--month-title-bg);
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .day-header {
+            background-color: #f1f5f9;
+            font-weight: bold;
+        }
+
+        .day-header.sun {
+            color: #ef4444;
+            /* 일요일 빨간색 */
+        }
+
+        .day-header.sat {
+            color: #2563eb;
+            /* 토요일 진한 파란색 */
+        }
+
+        .holiday {
+            background-color: var(--holiday-bg) !important;
+        }
+
+        .sun-cell {
+            color: #ef4444 !important;
+            font-weight: bold;
+        }
+
+        .sat-cell {
+            color: #2563eb !important;
+            font-weight: bold;
+        }
+
+        /* 통계 테이블 스타일 */
+        .summary-wrapper {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+            table-layout: fixed;
+        }
+
+        .summary-table th:first-child,
+        .summary-table td:first-child {
+            width: 90px;
+            /* '구분' 항목 필드 */
+        }
+
+        .summary-table th:nth-child(2),
+        .summary-table td:nth-child(2) {
+            width: 70px;
+            /* '연간' 항목 필드 */
+        }
+
+        .summary-table th,
+        .summary-table td {
+            border: 1px solid var(--calendar-border);
+            padding: 8px 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .summary-table th {
+            background-color: var(--month-title-bg);
+            font-weight: bold;
+        }
+
+        /* 비고란 스타일 */
+        .remarks-section {
+            margin-top: 20px;
+            border: 1px solid var(--calendar-border);
+            padding: 15px;
+            font-size: 0.95rem;
+            /* 기존 0.75rem에서 대폭 키움 */
+            line-height: 1.8;
+            background: #fff;
+        }
+
+        .remarks-title {
+            float: left;
+            font-weight: bold;
+            width: 80px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remarks-content-wrapper {
+            margin-left: 100px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .remark-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .remark-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            border: 1px solid #000;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- 좌측 사이드바 영역 -->
+        <aside class="sidebar collapsed" id="mainSidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    DN <span>SOLUTIONS</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="사이드바 토글">
+                    <span class="toggle-icon" id="toggleIcon">◀</span>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="sidebar-menu-item">
+                    <span class="menu-icon">🏠</span>
+                    <span class="menu-text">공정 종합 관리</span>
+                </a>
+                <a href="/work_report" class="sidebar-menu-item">
+                    <span class="menu-icon">📁</span>
+                    <span class="menu-text">작업일보</span>
+                </a>
+                <a href="/shop_calendar" class="sidebar-menu-item active">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">Shop Calendar</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 우측 메인 컨텐츠 영역 -->
+        <div class="container">
+            <header
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding: 0.5rem 0;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div>
+                        <h1 style="font-size: 1.4rem; margin: 0;">Shop Calendar</h1>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 캘린더 카드 영역 -->
+            <div class="calendar-card">
+                <div class="main-header-cal">
+                    2026년 병오년(丙午年) DN솔루션즈 CALENDAR
+                </div>
+
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- JS 캘린더 생성 -->
+                </div>
+
+                <div class="summary-wrapper">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>구 분</th>
+                                <th>년 간</th>
+                                <th>1월</th>
+                                <th>2월</th>
+                                <th>3월</th>
+                                <th>4월</th>
+                                <th>5월</th>
+                                <th>6월</th>
+                                <th>7월</th>
+                                <th>8월</th>
+                                <th>9월</th>
+                                <th>10월</th>
+                                <th>11월</th>
+                                <th>12월</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>총 일 수</td>
+                                <td>365</td>
+                                <td>31</td>
+                                <td>28</td>
+                                <td>31</td>
+                                <td>30</td>
+                                <td>31</td>
+                                <td>30</td>
+                                <td>31</td>
+                                <td>31</td>
+                                <td>30</td>
+                                <td>31</td>
+                                <td>30</td>
+                                <td>31</td>
+                            </tr>
+                            <tr>
+                                <td>휴 일 수</td>
+                                <td>122</td>
+                                <td>10</td>
+                                <td>12</td>
+                                <td>10</td>
+                                <td>8</td>
+                                <td>13</td>
+                                <td>9</td>
+                                <td>9</td>
+                                <td>11</td>
+                                <td>10</td>
+                                <td>12</td>
+                                <td>9</td>
+                                <td>9</td>
+                            </tr>
+                            <tr>
+                                <td>근 무 일 수</td>
+                                <td>243</td>
+                                <td>21</td>
+                                <td>16</td>
+                                <td>21</td>
+                                <td>22</td>
+                                <td>18</td>
+                                <td>21</td>
+                                <td>22</td>
+                                <td>20</td>
+                                <td>20</td>
+                                <td>19</td>
+                                <td>21</td>
+                                <td>22</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="remarks-section">
+                    <div class="remarks-title">비 고</div>
+                    <div class="remarks-content-wrapper">
+                        <div class="remark-item"><span class="remark-dot"></span> 신정 : 1/1</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 설 : 2/16~2/19</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 삼일절 : 3/1(3/2 대체)</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 노동절 : 5/1</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 어린이날 : 5/5</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 석가탄신일 : 5/24(5/25 대체)</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 지방선거 : 6/3</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 현충일 : 6/6</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 회사창립기념일 : 7/1</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 하계휴가 : 7/27~7/31</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 광복절 : 8/15(8/17 대체)</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 추석 : 9/24~9/27</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 개천절 : 10/3(10/5 대체)</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 한글날 : 10/9</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 노조창립기념일 : 10/10(10/12 대체)</div>
+                        <div class="remark-item"><span class="remark-dot"></span> 성탄절 : 12/25</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=56"></script>
+    <script>
+        const holidays = [
+            '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19',
+            '2026-03-01', '2026-03-02', '2026-05-01', '2026-05-05', '2026-05-24', '2026-05-25',
+            '2026-06-03', '2026-06-06', '2026-07-01', '2026-08-15', '2026-08-17',
+            '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27',
+            '2026-10-03', '2026-10-05', '2026-10-09', '2026-10-10', '2026-10-12', '2026-12-25'
+        ];
+        const specialGridHolidays = ['2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31'];
+
+        function createCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
+            for (let m = 0; m < 12; m++) {
+                const monthDiv = document.createElement('div');
+                const table = document.createElement('table');
+                table.className = 'month-table';
+
+                const monthHeaderRow = document.createElement('tr');
+                const monthHeaderText = document.createElement('th');
+                monthHeaderText.colSpan = 7;
+                monthHeaderText.className = 'month-header';
+                monthHeaderText.innerText = `${m + 1}月 ${months[m]}`;
+                monthHeaderRow.appendChild(monthHeaderText);
+                table.appendChild(monthHeaderRow);
+
+                const dayHeaderRow = document.createElement('tr');
+                ['일', '월', '화', '수', '목', '금', '토'].forEach((d, i) => {
+                    const th = document.createElement('th');
+                    th.className = 'day-header' + (i === 0 ? ' sun' : (i === 6 ? ' sat' : ''));
+                    th.innerText = d;
+                    dayHeaderRow.appendChild(th);
+                });
+                table.appendChild(dayHeaderRow);
+
+                const firstDay = new Date(2026, m, 1).getDay();
+                const lastDate = new Date(2026, m + 1, 0).getDate();
+
+                let date = 1;
+                for (let i = 0; i < 6; i++) {
+                    const row = document.createElement('tr');
+                    let hasContent = false;
+                    for (let j = 0; j < 7; j++) {
+                        const td = document.createElement('td');
+                        if (i === 0 && j < firstDay) {
+                        } else if (date > lastDate) {
+                        } else {
+                            td.innerText = date;
+                            const dateStr = `2026-${String(m + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                            if (j === 0 || j === 6 || holidays.includes(dateStr) || specialGridHolidays.includes(dateStr)) {
+                                td.className = 'holiday';
+                                if (j === 0 || (holidays.includes(dateStr) && !specialGridHolidays.includes(dateStr))) {
+                                    td.classList.add('sun-cell');
+                                } else if (j === 6) {
+                                    td.classList.add('sat-cell');
+                                }
+                            }
+                            date++;
+                            hasContent = true;
+                        }
+                        row.appendChild(td);
+                    }
+                    if (hasContent) table.appendChild(row);
+                }
+                monthDiv.appendChild(table);
+                grid.appendChild(monthDiv);
+            }
+        }
+        createCalendar();
+    </script>
+</body>
+
+</html>

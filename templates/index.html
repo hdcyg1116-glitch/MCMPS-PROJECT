@@ -5,10 +5,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCPMS - 공작기계 공정 관리 시스템</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=38">
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=19"></script>
     <!-- Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 샵캘린더 위젯 전용 스타일 */
+        .widget-month-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            /* 글자 크기 확대 */
+            table-layout: fixed;
+            border: 1px solid #000;
+            background-color: white;
+            margin: auto;
+        }
+
+        .widget-month-table th,
+        .widget-month-table td {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 8px 1px;
+            /* 패딩 증가 */
+            height: 38px;
+            /* 높이 대폭 증가 */
+            color: #000;
+            position: relative;
+        }
+
+        .widget-month-header {
+            background-color: #ebff00 !important;
+            font-weight: bold;
+            font-size: 1rem;
+            /* 헤더 크기 확대 */
+            color: #000;
+            height: 32px;
+        }
+
+        .widget-day-header {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .widget-holiday {
+            background-color: #dbeafe !important;
+        }
+
+        .widget-sun {
+            color: #ef4444 !important;
+        }
+
+        .widget-sat {
+            color: #2563eb !important;
+        }
+
+        .widget-today {
+            background-color: #fef9c3 !important;
+            font-weight: 800;
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+        }
+
+        /* 커스텀 툴팁 스타일 */
+        .holiday-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 5px;
+        }
+
+        td:hover .holiday-tooltip {
+            display: block;
+        }
+
+        #calendar-widget-container {
+            min-height: 250px;
+            /* 카드 안쪽을 더 꽉 채우기 위해 설정 */
+        }
+    </style>
 </head>
 
 <body>
@@ -33,59 +118,46 @@
                     <span class="menu-icon">📁</span>
                     <span class="menu-text">작업일보</span>
                 </a>
-
+                <a href="/shop_calendar" class="sidebar-menu-item">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">Shop Calendar</span>
+                </a>
             </nav>
         </aside>
 
         <!-- 우측 메인 컨텐츠 영역 (기존 화면) -->
         <div class="container">
-            <header>
+            <header
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding: 0.5rem 0;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <!-- DN Solutions 로고 컨셉의 타이틀 -->
-                    <div
-                        style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
-                        DN <span style="font-weight: 300; opacity: 0.9;">SOLUTIONS</span>
-                    </div>
                     <div>
-                        <h1 style="font-size: 1.4rem;">공정 종합 관리 시스템</h1>
-                        <p style="color: var(--secondary-color); font-size: 0.85rem; margin-top: 2px;">Smart Production
-                            Management System</p>
+                        <h1 style="font-size: 1.4rem; margin: 0;">공정 종합 관리 시스템</h1>
                     </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
-
-                    <!-- 현재 날짜 및 생산월 정보 -->
+                    <!-- 현재 날짜 정보 -->
                     <div id="info-area"
                         style="text-align: right; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                         <div id="current-date"
-                            style="font-size: 0.95rem; font-weight: 600; color: var(--primary-color);">로딩
-                            중...</div>
+                            style="font-size: 0.95rem; font-weight: 600; color: var(--primary-color);">
+                            로딩 중...
+                        </div>
                     </div>
-
-                    <!-- 엑셀 드래그 앤 드롭 영역 (테이블 헤더 내부로 이동됨) -->
-                    <div id="last-updated" style="font-size: 0.9rem; color: var(--secondary-color); text-align: right;">
-                        최근 업데이트: -
-                    </div>
-                    <!-- 작업일보 링크 (최우측으로 이동) -->
-                    <a href="/work_report"
-                        style="padding: 0.5rem 1.2rem; background: #334155; color: white; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.9rem; transition: background 0.2s;">
-                        작업일보
-                    </a>
                 </div>
             </header>
 
             <div class="dashboard-grid">
                 <!-- 요약 카드 -->
                 <div class="card">
-                    <div class="card-title">📊 직별 완료율</div>
+                    <div class="card-title">직별 완료율</div>
                     <div id="section-completion-list" style="padding: 10px; height: auto;">
                         <!-- JS로 채워짐 -->
                         로딩 중...
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-title">📅 금주 출하예상 장비 <span id="week-range"
+                    <div class="card-title">금주 출하예상 장비 <span id="week-range"
                             style="font-size: 0.85rem; font-weight: normal; color: var(--secondary-color); margin-left: 5px;"></span>
                     </div>
                     <div id="weekly-schedule">
@@ -93,71 +165,77 @@
                         로딩 중...
                     </div>
                 </div>
+                <div class="card"
+                    style="transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent-color);">
+                    <div class="card-title">Shop Calendar</div>
+                    <div id="calendar-widget-container"
+                        style="padding: 10px; display: flex; justify-content: center; align-items: center; flex: 1; overflow: hidden;">
+                        <!-- JS로 채워짐 -->
+                        로딩 중...
+                    </div>
+                </div>
             </div>
 
-            <div class="card" style="height: auto; margin-top: 0; padding: 0; overflow: visible;">
-                <div class="table-container" style="border: none; overflow: visible;">
+            <div class="card" style="height: auto; margin-top: 0; padding: 0; overflow: hidden; margin-bottom: 2rem;">
+                <!-- 제목 및 버튼 줄 (테이블 바깥으로 완벽 분리하여 틀고정 시 간섭 방지) -->
+                <div
+                    style="padding: 15px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; width: 100%; border-radius: 8px 8px 0 0;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
+                            <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b;">생산 계획</h3>
+                        </div>
+                        <!-- 월 선택 통합 드롭다운 -->
+                        <select id="unified-month-select" class="excel-filter-btn"
+                            style="padding: 6px 12px; font-size: 0.9rem; border: 2px solid #3b82f6; background: #eff6ff; color: #1d4ed8; border-radius: 6px; cursor: pointer; font-weight: 600; min-width: 220px;">
+                            <option value="">데이터 로딩 중...</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="position: relative; width: 300px;">
+                            <input type="text" id="global-search" oninput="filterData()"
+                                placeholder="숫자나 글씨를 입력하여 전체 검색"
+                                style="width: 100%; padding: 0.5rem 1rem 0.5rem 2.5rem; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.85rem; outline: none; transition: all 0.2s; border-color: var(--primary-color);">
+                            <span
+                                style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color); font-size: 0.9rem;">🔍</span>
+                        </div>
+
+                        <label for="fileElem" class="excel-filter-btn danger"
+                            style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-upload"></i> 엑셀 업로드
+                        </label>
+                        <input type="file" id="fileElem" accept=".xlsx, .xls" style="display:none">
+
+                        <button class="excel-filter-btn success" onclick="downloadExcel()"
+                            style="font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-download"></i> 엑셀 다운로드
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 실질적 데이터 스크롤(틀고정) 영역 -->
+                <div class="table-container"
+                    style="border: none; overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 111px); border-radius: 0 0 8px 8px;">
                     <table id="production-table" style="table-layout: auto;">
                         <thead>
-                            <!-- 제목 및 버튼 줄 (스크롤 시 사라짐) -->
-                            <tr class="title-row" style="background: white;">
-                                <th colspan="15"
-                                    style="padding: 15px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 40;">
-                                    <div
-                                        style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                        <div style="display: flex; align-items: center; gap: 15px;">
-                                            <div style="display: flex; align-items: center; gap: 8px;">
-                                                <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
-                                                <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b;">생산 대수</h3>
-                                            </div>
-                                            <!-- 월 선택 통합 드롭다운 -->
-                                            <select id="unified-month-select" class="excel-filter-btn"
-                                                style="padding: 6px 12px; font-size: 0.9rem; border: 2px solid #3b82f6; background: #eff6ff; color: #1d4ed8; border-radius: 6px; cursor: pointer; font-weight: 600; min-width: 220px;">
-                                                <option value="">데이터 로딩 중...</option>
-                                            </select>
-                                        </div>
-
-
-                                        <div style="display: flex; gap: 10px; align-items: center;">
-                                            <div style="position: relative; width: 300px;">
-                                                <input type="text" id="global-search" oninput="filterData()"
-                                                    placeholder="숫자나 글씨를 입력하여 전체 검색"
-                                                    style="width: 100%; padding: 0.5rem 1rem 0.5rem 2.5rem; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.85rem; outline: none; transition: all 0.2s; border-color: var(--primary-color);">
-                                                <span
-                                                    style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color); font-size: 0.9rem;">🔍</span>
-                                            </div>
-
-                                            <label for="fileElem" class="excel-filter-btn danger"
-                                                style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                                                <i class="fas fa-upload"></i> 엑셀 업로드
-                                            </label>
-                                            <input type="file" id="fileElem" accept=".xlsx, .xls" style="display:none">
-
-                                            <button class="excel-filter-btn success" onclick="downloadExcel()"
-                                                style="font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 5px;">
-                                                <i class="fas fa-download"></i> 엑셀 다운로드
-                                            </button>
-                                        </div>
-                                    </div>
-                                </th>
-                            </tr>
-                            <!-- 실제 고정될 제목 칸 (1번째 헤드라인) -->
+                            <!-- 실제 고정될 제목 칸 -->
                             <tr>
-                                <th style="top: 50px; z-index: 35;" data-key="no">NO.</th>
-                                <th style="top: 50px; z-index: 35;" data-key="month">생산월</th>
-                                <th style="top: 50px; z-index: 35;" data-key="section">생산직</th>
-                                <th style="top: 50px; z-index: 35;" data-key="model">전산 기종</th>
-                                <th style="top: 50px; z-index: 35;" data-key="serial">호기</th>
-                                <th style="top: 50px; z-index: 35;" data-key="order">오더</th>
-                                <th style="top: 50px; z-index: 35;" data-key="customer">출하처</th>
-                                <th style="top: 50px; z-index: 35;" data-key="first_shipment">최초 출하일</th>
-                                <th style="top: 50px; z-index: 35; color: #ff0000;" data-key="target">개정 출하일</th>
-                                <th style="top: 50px; z-index: 35;" data-key="base">Base 시작일</th>
-                                <th style="top: 50px; z-index: 35;" data-key="first_start">최초 시작일</th>
-                                <th style="top: 50px; z-index: 35;" data-key="revised_start">개정 시작일</th>
-                                <th style="top: 50px; z-index: 35;" data-key="nc">NC</th>
-                                <th style="top: 50px; z-index: 35;" data-key="status">현공정</th>
-                                <th style="top: 50px; z-index: 35;" data-key="issue">ISSUE 사항</th>
+                                <th style="top: 0; z-index: 35;" data-key="no">NO.</th>
+                                <th style="top: 0; z-index: 35;" data-key="month">생산월</th>
+                                <th style="top: 0; z-index: 35;" data-key="section">생산직</th>
+                                <th style="top: 0; z-index: 35;" data-key="model">전산 기종</th>
+                                <th style="top: 0; z-index: 35;" data-key="serial">호기</th>
+                                <th style="top: 0; z-index: 35;" data-key="order">오더</th>
+                                <th style="top: 0; z-index: 35;" data-key="customer">출하처</th>
+                                <th style="top: 0; z-index: 35;" data-key="first_shipment">최초 출하일</th>
+                                <th style="top: 0; z-index: 35; color: #ff0000;" data-key="target">개정 출하일</th>
+                                <th style="top: 0; z-index: 35;" data-key="base">Base 시작일</th>
+                                <th style="top: 0; z-index: 35;" data-key="first_start">최초 시작일</th>
+                                <th style="top: 0; z-index: 35;" data-key="revised_start">개정 시작일</th>
+                                <th style="top: 0; z-index: 35;" data-key="nc">NC</th>
+                                <th style="top: 0; z-index: 35;" data-key="status">현공정</th>
+                                <th style="top: 0; z-index: 35;" data-key="issue">ISSUE 사항</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
@@ -169,8 +247,131 @@
         </div>
     </div>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=42">
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=23"></script>
+    <!-- 캐시 무효화가 적용된 최신 정적 자원 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=71">
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=58"></script>
+
+    <!-- 샵캘린더 위젯 생성 스크립트 -->
+    <script>
+        const shopHolidaysMap = {
+            '2026-01-01': '신정',
+            '2026-02-16': '설날', '2026-02-17': '설날', '2026-02-18': '설날', '2026-02-19': '설날',
+            '2026-03-01': '삼일절', '2026-03-02': '대체공휴일(삼일절)',
+            '2026-05-01': '노동절', '2026-05-05': '어린이날', '2026-05-24': '석가탄신일', '2026-05-25': '대체공휴일(석가탄신일)',
+            '2026-06-03': '지방선거', '2026-06-06': '현충일',
+            '2026-07-01': '회사창립기념일',
+            '2026-07-27': '하계휴가', '2026-07-28': '하계휴가', '2026-07-29': '하계휴가', '2026-07-30': '하계휴가', '2026-07-31': '하계휴가',
+            '2026-08-15': '광복절', '2026-08-17': '대체공휴일(광복절)',
+            '2026-09-24': '추석', '2026-09-25': '추석', '2026-09-26': '추석', '2026-09-27': '추석',
+            '2026-10-03': '개천절', '2026-10-05': '대체공휴일(개천절)',
+            '2026-10-09': '한글날', '2026-10-10': '노조창립기념일', '2026-10-12': '대체공휴일(노조창립기념일)',
+            '2026-12-25': '성탄절'
+        };
+
+        function initCalendarWidget() {
+            const container = document.getElementById('calendar-widget-container');
+            if (!container) return;
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth(); // 0-indexed
+            const todayDate = now.getDate();
+
+            const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
+            const table = document.createElement('table');
+            table.className = 'widget-month-table';
+
+            // Month Header
+            const hRow = document.createElement('tr');
+            const hText = document.createElement('th');
+            hText.colSpan = 7;
+            hText.className = 'widget-month-header';
+            hText.innerText = `${month + 1}月 ${monthNames[month]}`;
+            hRow.appendChild(hText);
+            table.appendChild(hRow);
+
+            // Day Headers
+            const dRow = document.createElement('tr');
+            ['일', '월', '화', '수', '목', '금', '토'].forEach((d, i) => {
+                const th = document.createElement('th');
+                th.className = 'widget-day-header';
+                if (i === 0) th.classList.add('widget-sun');
+                if (i === 6) th.classList.add('widget-sat');
+                th.innerText = d;
+                dRow.appendChild(th);
+            });
+            table.appendChild(dRow);
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                const row = document.createElement('tr');
+                let hasContent = false;
+                for (let j = 0; j < 7; j++) {
+                    const td = document.createElement('td');
+                    if (i === 0 && j < firstDay) {
+                        // Empty
+                    } else if (date > lastDate) {
+                        // Empty
+                    } else {
+                        td.innerText = date;
+                        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+
+                        // 휴일 명칭 결정 (공휴일만)
+                        const holidayName = shopHolidaysMap[ds];
+
+                        if (j === 0 || j === 6 || holidayName) {
+                            td.className = 'widget-holiday';
+
+                            if (holidayName) {
+                                // 커스텀 툴팁 요소 추가 (공휴일인 경우에만)
+                                const tooltip = document.createElement('div');
+                                tooltip.className = 'holiday-tooltip';
+                                tooltip.innerText = holidayName;
+                                td.appendChild(tooltip);
+                                td.style.cursor = 'help';
+                            }
+
+                            // 색상 적용
+                            if (j === 0 || (holidayName && !holidayName.includes('하계휴가'))) {
+                                td.classList.add('widget-sun');
+                            } else if (j === 6) {
+                                td.classList.add('widget-sat');
+                            }
+                        }
+
+                        // 오늘 날짜 체크
+                        if (date === todayDate && year === now.getFullYear() && month === now.getMonth()) {
+                            td.classList.add('widget-today');
+                            if (j !== 0 && j !== 6 && !holidayName) {
+                                td.style.color = '#ef4444';
+                            }
+                        }
+
+                        date++;
+                        hasContent = true;
+                    }
+                    row.appendChild(td);
+                }
+                if (hasContent) table.appendChild(row);
+            }
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        document.addEventListener('DOMContentLoaded', initCalendarWidget);
+    </script>
+
+    <!-- 업로드 로딩 오버레이 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">업로드 중<span class="dot-one">.</span><span class="dot-two">.</span><span
+                class="dot-three">.</span></div>
+    </div>
 </body>
 
 </html>
